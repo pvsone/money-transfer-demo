@@ -8,6 +8,7 @@ import java.util.AbstractMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static io.temporal.samples.moneytransfer.TransferApprovals.listPendingApprovals;
 import static io.temporal.samples.moneytransfer.TransferLister.listWorkflows;
 import static io.temporal.samples.moneytransfer.TransferRequester.*;
 import static io.temporal.samples.moneytransfer.TransferScheduler.runSchedule;
@@ -62,6 +63,10 @@ public class WebServer {
         app.get("/listWorkflows", ctx -> {
             List<WorkflowStatus> workflowList = listWorkflows();
             ctx.json(workflowList);
+        });
+
+        app.get("/pendingApprovals", ctx -> {
+            ctx.json(listPendingApprovals());
         });
 
         app.get("/test", ctx -> ctx.result("Hello Javalin!"));
