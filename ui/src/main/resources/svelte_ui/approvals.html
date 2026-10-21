@@ -116,6 +116,10 @@
     const tbody = document.getElementById('approvals');
     const errorLine = document.getElementById('error');
 
+    // ids approved but still listed until visibility catches up, so their buttons stay disabled across re-renders
+    const approving = new Set();
+    let loadFailed = false;
+
     // cells are filled with textContent so workflow data is never parsed as HTML
     function cell(text, className) {
         const td = document.createElement('td');
@@ -126,6 +130,11 @@
 
     function render(approvals) {
         tbody.replaceChildren();
+
+        const listed = new Set(approvals.map(approval => approval.workflowId));
+        for (const id of approving) {
+            if (!listed.has(id)) approving.delete(id);
+        }
 
         if (approvals.length === 0) {
             const row = document.createElement('tr');
@@ -146,8 +155,13 @@
 
             const button = document.createElement('button');
             button.className = 'approve';
-            button.textContent = 'Approve';
-            button.addEventListener('click', () => approve(approval.workflowId, button));
+            if (approving.has(approval.workflowId)) {
+                button.disabled = true;
+                button.textContent = 'Approving…';
+            } else {
+                button.textContent = 'Approve';
+                button.addEventListener('click', () => approve(approval.workflowId, button));
+            }
             const action = document.createElement('td');
             action.appendChild(button);
             row.appendChild(action);
@@ -161,23 +175,33 @@
             const response = await fetch('/pendingApprovals');
             if (!response.ok) throw new Error(response.statusText);
             render(await response.json());
-            errorLine.textContent = '';
+            if (loadFailed) errorLine.textContent = '';
+            loadFailed = false;
         } catch (e) {
+            loadFailed = true;
             errorLine.textContent = 'Unable to load pending approvals.';
         }
     }
 
     async function approve(workflowId, button) {
+        errorLine.textContent = '';
+        approving.add(workflowId);
         button.disabled = true;
+        button.textContent = 'Approving…';
         try {
-            await fetch('/approveTransfer', {
+            const response = await fetch('/approveTransfer', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({workflowId})
             });
-        } finally {
-            refresh();
+            if (!response.ok) throw new Error(response.statusText);
+        } catch (e) {
+            approving.delete(workflowId);
+            await refresh();
+            errorLine.textContent = 'Approve failed for ' + workflowId + '.';
+            return;
         }
+        refresh();
     }
 
     refresh();
