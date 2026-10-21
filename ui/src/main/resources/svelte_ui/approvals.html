@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="./favicon.png" />
+    <link href="./_app/immutable/assets/0.cf0b3f4a.css" rel="stylesheet">
+    <title>Pending Approvals</title>
+    <style>
+        body {
+            background: #fff;
+            color: #18181b;
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        }
+        main {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .back {
+            color: #52525b;
+            font-size: 0.875rem;
+        }
+        .back:hover {
+            color: #18181b;
+        }
+        h1 {
+            font-family: Poppins, sans-serif;
+            font-size: 1.5rem;
+            text-align: center;
+            margin: 1.5rem 0 0.25rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #71717a;
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+        }
+        .table-wrap {
+            border: 1px solid #e4e4e7;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            white-space: nowrap;
+        }
+        th {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #52525b;
+            background: #fafafa;
+            border-bottom: 1px solid #e4e4e7;
+        }
+        tbody tr + tr td {
+            border-top: 1px solid #f4f4f5;
+        }
+        td.amount {
+            font-variant-numeric: tabular-nums;
+        }
+        td.empty {
+            text-align: center;
+            color: #71717a;
+            padding: 2rem 1rem;
+        }
+        button.approve {
+            background: #18181b;
+            color: #fff;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.875rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        button.approve:hover {
+            background: #3f3f46;
+        }
+        button.approve:disabled {
+            background: #a1a1aa;
+            cursor: default;
+        }
+        .error {
+            color: #b91c1c;
+            font-size: 0.875rem;
+            min-height: 1.25rem;
+            margin-top: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <a class="back" href="/">← Back to Transfers</a>
+    <h1>Pending Approvals</h1>
+    <p class="subtitle">Transfers waiting on approval. Refreshes every 2 seconds.</p>
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>Transfer ID</th>
+                <th>From Account</th>
+                <th>To Account</th>
+                <th>Amount</th>
+                <th>Approver</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody id="approvals"></tbody>
+        </table>
+    </div>
+    <p class="error" id="error"></p>
+</main>
+<script>
+    const tbody = document.getElementById('approvals');
+    const errorLine = document.getElementById('error');
+
+    // cells are filled with textContent so workflow data is never parsed as HTML
+    function cell(text, className) {
+        const td = document.createElement('td');
+        td.textContent = text;
+        if (className) td.className = className;
+        return td;
+    }
+
+    function render(approvals) {
+        tbody.replaceChildren();
+
+        if (approvals.length === 0) {
+            const row = document.createElement('tr');
+            const td = cell('No transfers awaiting approval.', 'empty');
+            td.colSpan = 6;
+            row.appendChild(td);
+            tbody.appendChild(row);
+            return;
+        }
+
+        for (const approval of approvals) {
+            const row = document.createElement('tr');
+            row.appendChild(cell(approval.workflowId));
+            row.appendChild(cell(approval.fromAccount));
+            row.appendChild(cell(approval.toAccount));
+            row.appendChild(cell('$' + approval.amount, 'amount'));
+            row.appendChild(cell(approval.approver));
+
+            const button = document.createElement('button');
+            button.className = 'approve';
+            button.textContent = 'Approve';
+            button.addEventListener('click', () => approve(approval.workflowId, button));
+            const action = document.createElement('td');
+            action.appendChild(button);
+            row.appendChild(action);
+
+            tbody.appendChild(row);
+        }
+    }
+
+    async function refresh() {
+        try {
+            const response = await fetch('/pendingApprovals');
+            if (!response.ok) throw new Error(response.statusText);
+            render(await response.json());
+            errorLine.textContent = '';
+        } catch (e) {
+            errorLine.textContent = 'Unable to load pending approvals.';
+        }
+    }
+
+    async function approve(workflowId, button) {
+        button.disabled = true;
+        try {
+            await fetch('/approveTransfer', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({workflowId})
+            });
+        } finally {
+            refresh();
+        }
+    }
+
+    refresh();
+    setInterval(refresh, 2000);
+</script>
+</body>
+</html>

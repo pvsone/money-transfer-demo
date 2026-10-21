@@ -84,6 +84,15 @@ It will reject an Update if:
 - The transfer isn't waiting for approval
 - The transfer has already been approved
 
+Approve a transfer using the **Approvals Dashboard**
+
+Open [http://localhost:7070/approvals.html](http://localhost:7070/approvals.html) to see every transfer waiting on
+approval, with an Approve button on each row. The page refreshes every 2 seconds.
+
+- A transfer is listed while it is running and its `Step` search attribute is `Awaiting_Approval`. Only the Java worker
+  sets this value, so transfers handled by the other workers won't appear.
+- The approver is based on the from account: `Checking` is approved by **Alice**, `Savings` by **Bob**.
+
 #### Simulate a Bug in the Workflow (recoverable failure)
 
 Comment out the RuntimeException in the workflow code (`AccountTransferWorkflowImpl.java`) and restart the worker to fix
