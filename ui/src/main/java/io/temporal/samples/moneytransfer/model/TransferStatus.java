@@ -13,4 +13,5 @@ public class TransferStatus {
     private String workflowStatus;
     private ChargeResponse chargeResult;
     private int approvalTime;
+    private TransferInput input;
 }

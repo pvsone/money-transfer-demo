@@ -22,9 +22,11 @@ public class AccountTransferWorkflowImpl implements AccountTransferWorkflow {
     private int progress = 0;
     private String transferState = "starting";
     private DepositResponse depositResponse = new DepositResponse("");
+    private TransferInput input;
 
     @Override
-    public TransferOutput transfer(TransferInput input) {
+    public TransferOutput transfer(TransferInput in) {
+        input = in;
         String type = Workflow.getInfo().getWorkflowType();
         log.info("Account Transfer workflow started, type = {}", type);
         String idempotencyKey = Workflow.randomUUID().toString();
@@ -50,7 +52,7 @@ public class AccountTransferWorkflowImpl implements AccountTransferWorkflow {
 
     @Override
     public TransferStatus queryTransferStatus() {
-        return new TransferStatus(progress, transferState, "", depositResponse, 0);
+        return new TransferStatus(progress, transferState, "", depositResponse, 0, input);
     }
 
     private void updateProgress(int progress, int sleep) {

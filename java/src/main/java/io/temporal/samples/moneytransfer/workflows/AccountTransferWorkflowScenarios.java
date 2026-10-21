@@ -36,10 +36,12 @@ public class AccountTransferWorkflowScenarios implements DynamicWorkflow {
     private int approvalTime = 30;
     private boolean approved = false;
 
+    private TransferInput input;
+
     @Override
     public Object execute(EncodedValues args) {
         Workflow.registerListener(new AccountTransferDynamicListenerImpl());
-        TransferInput input = args.get(0, TransferInput.class);
+        input = args.get(0, TransferInput.class);
         String type = Workflow.getInfo().getWorkflowType();
         log.info("Dynamic Account Transfer workflow started, type = {}", type);
         String idempotencyKey = Workflow.randomUUID().toString();
@@ -50,6 +52,7 @@ public class AccountTransferWorkflowScenarios implements DynamicWorkflow {
         updateProgress(25, 1);
 
         if (NEEDS_APPROVAL.equals(type)) {
+            upsertStep("Awaiting_Approval");
             log.info(
                 "Waiting on 'approveTransfer' Signal or Update for workflow ID: {}",
                 Workflow.getInfo().getWorkflowId()
@@ -104,12 +107,14 @@ public class AccountTransferWorkflowScenarios implements DynamicWorkflow {
         activities.sendNotification(input);
         updateProgress(100, 1, "finished");
 
+        upsertStep("Complete");
         return new TransferOutput(depositResponse);
     }
 
     private void upsertStep(String step) {
-        if (ADVANCED_VISIBILITY.equals(Workflow.getInfo().getWorkflowType())) {
-            log.info("Advanced visibility .. {}", step);
+        if (ADVANCED_VISIBILITY.equals(Workflow.getInfo().getWorkflowType()) || 
+            NEEDS_APPROVAL.equals(Workflow.getInfo().getWorkflowType())) {
+            log.info("Visibility .. {}", step);
             Workflow.upsertTypedSearchAttributes(WORKFLOW_STEP.valueSet(step));
         }
     }
@@ -130,7 +135,7 @@ public class AccountTransferWorkflowScenarios implements DynamicWorkflow {
 
         @Override
         public TransferStatus queryTransferStatus() {
-            return new TransferStatus(progress, transferState, "", depositResponse, approvalTime);
+            return new TransferStatus(progress, transferState, "", depositResponse, approvalTime, input);
         }
 
         @Override

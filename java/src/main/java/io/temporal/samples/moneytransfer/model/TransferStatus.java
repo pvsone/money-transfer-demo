@@ -18,4 +18,5 @@ public class TransferStatus {
     private DepositResponse depositResponse;
 
     private int approvalTime;
+    private TransferInput input;
 }
