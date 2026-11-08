@@ -5,6 +5,7 @@ import io.temporal.samples.moneytransfer.model.DepositResponse;
 import io.temporal.samples.moneytransfer.model.TransferInput;
 import io.temporal.samples.moneytransfer.model.TransferOutput;
 import io.temporal.samples.moneytransfer.model.TransferStatus;
+import io.temporal.workflow.TimerOptions;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
 
@@ -45,7 +46,7 @@ public class AccountTransferWorkflowImpl implements AccountTransferWorkflow {
 
         // Send Notification
         activities.sendNotification(input);
-        updateProgress(100, 1, "finished");
+        updateProgress(100, 0, "finished");
 
         return new TransferOutput(depositResponse);
     }
@@ -61,7 +62,13 @@ public class AccountTransferWorkflowImpl implements AccountTransferWorkflow {
 
     private void updateProgress(int progress, int sleep, String transferState) {
         if (sleep > 0) {
-            Workflow.sleep(Duration.ofSeconds(sleep));
+            Workflow.newTimer(
+                    Duration.ofSeconds(sleep),
+                    TimerOptions.newBuilder()
+                            .setSummary(sleep+"s")
+                            .build()
+            ).get();
+
         }
         this.transferState = transferState;
         this.progress = progress;
