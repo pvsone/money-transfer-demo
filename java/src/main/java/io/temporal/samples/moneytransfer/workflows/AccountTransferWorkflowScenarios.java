@@ -33,7 +33,7 @@ public class AccountTransferWorkflowScenarios implements DynamicWorkflow {
     private String transferState = "starting";
     private DepositResponse depositResponse = new DepositResponse("");
 
-    private int approvalTime = 30;
+    private int approvalTime = 300;
     private boolean approved = false;
 
     private TransferInput input;
@@ -112,7 +112,7 @@ public class AccountTransferWorkflowScenarios implements DynamicWorkflow {
     }
 
     private void upsertStep(String step) {
-        if (ADVANCED_VISIBILITY.equals(Workflow.getInfo().getWorkflowType()) || 
+        if (ADVANCED_VISIBILITY.equals(Workflow.getInfo().getWorkflowType()) ||
             NEEDS_APPROVAL.equals(Workflow.getInfo().getWorkflowType())) {
             log.info("Visibility .. {}", step);
             Workflow.upsertTypedSearchAttributes(WORKFLOW_STEP.valueSet(step));
